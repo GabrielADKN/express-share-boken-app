@@ -1,0 +1,38 @@
+const express = require('express');
+const axios = require('axios');
+const router = express.Router();
+const ExpressError = require('../expressError');
+
+
+router.post('/', async (req, res, next)  => {
+    try {
+        const developers = req.body.developers;
+
+        // Input validation
+        if (!developers || !Array.isArray(developers) || developers.length === 0) {
+            throw next(new ExpressError("Invalid input: developers must be an array", 400))
+        }
+
+        // Fetching data for each developer
+        const data = await Promise.all(developers.map(async developer => {
+            const url = `https://api.github.com/users/${developer}`;
+            const response = await axios.get(url);
+            return response.data;
+        }));
+
+        //Extracting relevant data
+        const users = data.map(developer => ({
+            name: developer.name,
+            bio: developer.bio
+        }));
+
+        //return response
+        return res.json({ users });
+
+    } catch (err)
+    {
+        next(err);
+    }
+});
+
+module.exports = router;
